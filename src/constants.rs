@@ -1,0 +1,1 @@
+pub const PROJECTS_DIR: &str = "./projects/";

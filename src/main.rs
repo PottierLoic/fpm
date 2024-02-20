@@ -1,4 +1,11 @@
 use std::env;
+use std::path::Path;
+
+mod project;
+use project::ProjectConfig;
+
+mod constants;
+use constants::PROJECTS_DIR;
 
 fn main() {
   let args: Vec<String> = env::args().collect();
@@ -22,8 +29,8 @@ fn create_new_project(args: &[String]) {
     return;
   }
 
-  let project_name = &args[0];
-  println!("Creating new project: {}", project_name);
+  let new_project = ProjectConfig::new(&args[0]);
+  new_project.save_to(Path::new(PROJECTS_DIR)).unwrap();
 }
 
 fn configure_project(args: &[String]) {
