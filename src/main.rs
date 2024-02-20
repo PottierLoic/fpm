@@ -30,7 +30,13 @@ fn create_new_project(args: &[String]) {
   }
 
   let new_project = ProjectConfig::new(&args[0]);
-  new_project.save_to(Path::new(PROJECTS_DIR)).unwrap();
+  match new_project.save_to(Path::new(PROJECTS_DIR)) {
+    Ok(_) => println!("Project '{}' created successfully", new_project.name),
+    Err(e) => {
+      println!("Error creating project: {}", e);
+      return;
+    }
+  }
 }
 
 fn configure_project(args: &[String]) {
