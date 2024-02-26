@@ -8,46 +8,40 @@ pub struct Fpm {
 }
 
 impl Fpm {
-  pub fn new() -> Self {
-    let global_config = match GlobalConfig::load() {
-      Ok(config) => config,
-      Err(e) => {
-        println!("Error loading global config: {}", e);
-        std::process::exit(1);
-      }
-    };
-    Fpm { global_config }
+  pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
+    let global_config = GlobalConfig::load()?;
+    Ok(Fpm { global_config })
   }
 
-  pub fn create_new_project(&mut self, args: &[String]) {
+  pub fn create_new_project(&mut self, args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     if args.is_empty() {
-      println!("Usage: fpm new <project-name>");
-      return;
+      return Err("Usage: fpm new <project-name>".into());
     }
 
     let new_project = ProjectConfig::new(&args[0]);
-    match new_project.save_to(Path::new(PROJECTS_DIR)) {
-      Ok(_) => println!("Project '{}' created successfully.", new_project.name),
-      Err(e) => {
-        println!("Error creating project: {}", e);
-        return;
-      }
-    }
-    self.global_config.set_current_project(new_project.name);
-    self.global_config.save().expect("Failed to save global configuration.");
+    new_project.save(Path::new(PROJECTS_DIR))?;
+    println!("Project '{}' created successfully.", new_project.name);
+    self.global_config.set_current_project(new_project.name)?;
+    Ok(())
   }
 
-  pub fn configure_project(&self, args: &[String]) {
+  pub fn configure_project(&self, args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     if args.is_empty() {
-      println!("Usage: fpm config --param1=value --param2=value ...");
-      return;
+      return Err("Usage: fpm config --param1=value --param2=value ...".into());
     }
 
     println!("Configuring project with args: {:?}", args);
+    Ok(())
   }
 
-  pub fn open_project(&self) {
-    println!("Opening project: {}", self.global_config.current_project.as_deref().unwrap_or("No project selected"));
+  pub fn open_project(&self) -> Result<(), Box<dyn std::error::Error>> {
+    match self.global_config.current_project.as_deref() {
+      Some(project_name) => {
+        println!("Opening project: {}", project_name);
+        // TODO: Open the sortcuts here.
+        Ok(())
+      },
+      None => Err("No project selected".into()),
+    }
   }
 }
-
