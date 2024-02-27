@@ -22,6 +22,10 @@ impl ProjectConfig {
   }
 
   pub fn load(path: &Path) -> Result<Self, Box<dyn std::error::Error>> {
+    if !path.exists() {
+      return Err(Box::new(io::Error::new(io::ErrorKind::NotFound, "Project has no config file.")));
+    }
+
     let contents = fs::read_to_string(path)?;
     let config = serde_yaml::from_str(&contents)
       .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
@@ -37,9 +41,6 @@ impl ProjectConfig {
         .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
     }
 
-    if file_path.exists() {
-      return Err(Box::new(io::Error::new(io::ErrorKind::AlreadyExists, format!("File '{}' already exists.", file_name))));
-    }
     let contents = serde_yaml::to_string(&self)
       .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
     fs::write(file_path, contents)?;

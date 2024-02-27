@@ -30,7 +30,34 @@ impl Fpm {
       return Err("Usage: fpm config --param1=value --param2=value ...".into());
     }
 
-    println!("Configuring project with args: {:?}", args);
+    if args.len() % 2 != 0 {
+      return Err(Box::new(std::io::Error::new(
+        std::io::ErrorKind::InvalidInput,
+        "Invalid arguments formatting, use “—parameter=value”.",
+      )));
+    }
+
+    let project_name = match self.global_config.current_project.as_ref() {
+      Some(name) => name,
+      None => return Err(Box::new(std::io::Error::new(std::io::ErrorKind::NotFound, "No project selected"))),
+    };
+
+    let path = format!("{}{}.yml", PROJECTS_DIR, project_name);
+    let mut config = ProjectConfig::load(Path::new(&path))?;
+
+    for idx in (0..args.len()).step_by(2) {
+      let value = Some(args[idx + 1].clone());
+      match args[idx].as_str() {
+        "--editor" => { config.editor = value; },
+        "--path" => { config.path = value; },
+        "--terminal" => { config.terminal = value; },
+        _ => {
+          return Err("Invalid argument. Please check the help documentation or man for a list of available arguments.".into());
+        },
+      }
+    }
+
+    config.save(Path::new(PROJECTS_DIR))?;
     Ok(())
   }
 
