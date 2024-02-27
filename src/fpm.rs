@@ -16,6 +16,7 @@ impl Fpm {
 
   pub fn create_new_project(&mut self, args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     if args.is_empty() {
+      // TODO: Load the interface instead
       return Err("Usage: fpm new <project-name>".into());
     }
 
@@ -93,11 +94,20 @@ impl Fpm {
             .arg(shell_flag)
             .arg(format!("cd {} && {}", project_path, terminal_command))
             .spawn()?;
+        } else {
+          return Err("Terminal not configured for this project".into())
         }
         Ok(())
-
       },
       None => return Err("No project selected".into()),
     }
+  }
+
+  pub fn select_project(&mut self, name: &str) -> Result<(), Box<dyn std::error::Error>> {
+    //try to load the config
+    let _ = ProjectConfig::load(name)?;
+    self.global_config.current_project = Some(name.to_string());
+    self.global_config.save()?;
+    Ok(())
   }
 }

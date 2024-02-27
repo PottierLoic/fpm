@@ -32,6 +32,10 @@ fn main() {
       fpm.open_project()
         .unwrap_or_else(|e| handle_error(&format!("Error opening project: {}", e)));
     }
+    "select" => {
+      fpm.select_project(&args[2])
+        .unwrap_or_else(|e| handle_error(&format!("Error selecting project: {}", e)));
+    }
     _ => {
       println!("Invalid command.");
       println!("Use 'fpm help' for a list of available commands or consult the man page for more details.");
