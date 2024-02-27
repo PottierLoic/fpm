@@ -41,8 +41,7 @@ fn main() {
         .unwrap_or_else(|e| handle_error(&format!("Error selecting project: {}", e)));
     }
     _ => {
-      println!("Invalid command.");
-      println!("Use 'fpm help' for a list of available commands or consult the man page for more details.");
+      handle_error("Invalid command.\nUse 'fpm help' for a list of available commands or consult the man page for more details.");
     },
   }
 }
