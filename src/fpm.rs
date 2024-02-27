@@ -75,11 +75,10 @@ impl Fpm {
     match self.global_config.current_project.as_deref() {
       Some(project_name) => {
         let project_config = ProjectConfig::load(project_name)?;
+        let project_path = project_config.path.unwrap_or_else(|| ".".to_string());
 
-        // editor tests
+        // IDE part.
         if let Some(editor_command) = project_config.editor {
-          let project_path = project_config.path.unwrap_or_else(|| ".".to_string()); // Default to current directory if no path is specified
-          // Execute the command
           Command::new(shell_command)
             .arg(shell_flag)
             .arg(format!("{} {}", editor_command, project_path))
@@ -87,7 +86,16 @@ impl Fpm {
         } else {
           return Err("Editor not configured for this project".into())
         }
+
+        // Terminal part.
+        if let Some(terminal_command) = project_config.terminal {
+          Command::new(shell_command)
+            .arg(shell_flag)
+            .arg(format!("cd {} && {}", project_path, terminal_command))
+            .spawn()?;
+        }
         Ok(())
+
       },
       None => return Err("No project selected".into()),
     }
