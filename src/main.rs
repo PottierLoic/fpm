@@ -1,9 +1,11 @@
 mod fpm;
-use fpm::Fpm;
-
 mod project_config;
+mod fpm_gui;
 mod global_config;
 mod constants;
+
+use fpm::Fpm;
+use fpm_gui::FpmGui;
 
 fn handle_error(message: &str) {
   println!("{}", message);
@@ -15,6 +17,8 @@ fn main() {
   let args: Vec<String> = std::env::args().collect();
 
   if args.len() < 2 {
+    let fpm_gui = FpmGui::new();
+    fpm_gui.run().unwrap_or_else(|e| handle_error(&format!("Error opening fpm gui: {}", e)));
     println!("Usage: fpm <command> [options]");
     return;
   }
