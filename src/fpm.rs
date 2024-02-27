@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::process::Command;
 use crate::global_config::GlobalConfig;
 use crate::project_config::ProjectConfig;
 use crate::constants::PROJECTS_DIR;
@@ -42,8 +43,7 @@ impl Fpm {
       None => return Err(Box::new(std::io::Error::new(std::io::ErrorKind::NotFound, "No project selected"))),
     };
 
-    let path = format!("{}{}.yml", PROJECTS_DIR, project_name);
-    let mut config = ProjectConfig::load(Path::new(&path))?;
+    let mut config = ProjectConfig::load(project_name)?;
 
     for idx in (0..args.len()).step_by(2) {
       let value = Some(args[idx + 1].clone());
@@ -62,13 +62,34 @@ impl Fpm {
   }
 
   pub fn open_project(&self) -> Result<(), Box<dyn std::error::Error>> {
+    #[cfg(target_os = "windows")]
+    let shell_command = "cmd";
+    #[cfg(target_os = "windows")]
+    let shell_flag = "/C";
+
+    #[cfg(not(target_os = "windows"))]
+    let shell_command = "sh";
+    #[cfg(not(target_os = "windows"))]
+    let shell_flag = "-c";
+
     match self.global_config.current_project.as_deref() {
       Some(project_name) => {
-        println!("Opening project: {}", project_name);
-        // TODO: Open the sortcuts here.
+        let project_config = ProjectConfig::load(project_name)?;
+
+        // editor tests
+        if let Some(editor_command) = project_config.editor {
+          let project_path = project_config.path.unwrap_or_else(|| ".".to_string()); // Default to current directory if no path is specified
+          // Execute the command
+          Command::new(shell_command)
+            .arg(shell_flag)
+            .arg(format!("{} {}", editor_command, project_path))
+            .spawn()?;
+        } else {
+          return Err("Editor not configured for this project".into())
+        }
         Ok(())
       },
-      None => Err("No project selected".into()),
+      None => return Err("No project selected".into()),
     }
   }
 }

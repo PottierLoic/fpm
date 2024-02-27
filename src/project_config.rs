@@ -3,6 +3,8 @@ use std::{fs, io};
 use std::path::Path;
 use std::fmt;
 
+use crate::constants::PROJECTS_DIR;
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ProjectConfig {
   pub name: String,
@@ -21,7 +23,9 @@ impl ProjectConfig {
     }
   }
 
-  pub fn load(path: &Path) -> Result<Self, Box<dyn std::error::Error>> {
+  pub fn load(name: &str) -> Result<Self, Box<dyn std::error::Error>> {
+    let path_str = format!("{}/{}.yml", PROJECTS_DIR, name);
+    let path = Path::new(&path_str);
     if !path.exists() {
       return Err(Box::new(io::Error::new(io::ErrorKind::NotFound, "Project has no config file.")));
     }
