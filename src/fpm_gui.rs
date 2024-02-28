@@ -1,11 +1,11 @@
-use std::fs;
+use std::{fs, cmp};
 use std::io::{self, stdout};
 use crossterm::{
   event::{self, Event, KeyCode},
   terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
   ExecutableCommand,
 };
-use ratatui::{prelude::*, widgets::*};
+use ratatui::{prelude::*, widgets::*, style::*};
 
 use crate::constants::PROJECTS_DIR;
 
@@ -20,6 +20,7 @@ pub enum GuiState {
 pub struct FpmGui {
   pub state: GuiState,
   pub projects: Vec<String>,
+  pub selection_index: i32,
 }
 
 impl FpmGui {
@@ -27,6 +28,7 @@ impl FpmGui {
     return FpmGui {
       state: GuiState::Home,
       projects: FpmGui::fill_project_list(),
+      selection_index: 0,
     }
   }
 
@@ -48,7 +50,7 @@ impl FpmGui {
       .unwrap_or_else(|_| Vec::new());
   }
 
-  pub fn run(&self) -> io::Result<()> {
+  pub fn run(&mut self) -> io::Result<()> {
     enable_raw_mode()?;
     stdout().execute(EnterAlternateScreen)?;
     let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
@@ -64,11 +66,22 @@ impl FpmGui {
     Ok(())
   }
 
-  fn handle_events(&self) -> io::Result<bool> {
+  fn handle_events(&mut self) -> io::Result<bool> {
     if event::poll(std::time::Duration::from_millis(50))? {
       if let Event::Key(key) = event::read()? {
-        if key.kind == event::KeyEventKind::Press && key.code == KeyCode::Char('q') {
-          return Ok(true);
+        if key.kind == event::KeyEventKind::Press {
+          match key.code {
+            KeyCode::Char('q') => {
+              return Ok(true);
+            },
+            KeyCode::Up => {
+              self.selection_index = cmp::max(0, self.selection_index - 1);
+            },
+            KeyCode::Down => {
+              self.selection_index = cmp::min(self.projects.len() as i32, self.selection_index + 1);
+            },
+            _ => {},
+          }
         }
       }
     }
@@ -76,13 +89,24 @@ impl FpmGui {
   }
 
   fn ui(&self, frame: &mut Frame) {
+    let default_style = Style::default().bg(Color::Rgb(25, 24, 48));
+
     match self.state {
       GuiState::Home => {
-        let projects: Vec<ListItem> = self.projects.iter().map(|p| ListItem::new(p.clone())).collect();
+        let projects: Vec<ListItem> = self.projects.iter().enumerate().map(|(index, project)| {
+          let item_style = if index as i32 == self.selection_index {
+            Style::default()
+              .bg(Color::Rgb(25, 24, 48))
+              .fg(Color::Rgb(255, 255, 255))
+              .add_modifier(Modifier::BOLD)
+          } else {
+            default_style
+          };
+          ListItem::new(project.clone()).style(item_style)
+        }).collect();
+
         let projects_list = List::new(projects)
-          .block(Block::default().title("Projects").borders(Borders::ALL))
-          .highlight_style(Style::default().add_modifier(Modifier::BOLD))
-          .highlight_symbol(">>");
+          .block(Block::default().title("Projects").borders(Borders::ALL).style(default_style));
 
         let size = frame.size();
 
@@ -101,7 +125,7 @@ impl FpmGui {
 
         frame.render_widget(Paragraph::new("Welcome to Fast Project Manager")
           .alignment(Alignment::Center)
-          .block(Block::default().borders(Borders::ALL)), welcome_message_chunk);
+          .block(Block::default().borders(Borders::ALL).style(default_style)), welcome_message_chunk);
 
         let left_side_chunks = Layout::default()
           .direction(Direction::Horizontal)
